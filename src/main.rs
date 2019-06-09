@@ -19,6 +19,10 @@ use winapi::um::winuser::*;
 
 //use winapi::um::xinput::*;
 
+mod line;
+
+use self::line::*;
+
 static mut GLOBAL_BACK_BUFFER: *mut Win32OffScreenBuffer = 0 as *mut Win32OffScreenBuffer;
 
 macro_rules! wcstring {
@@ -165,10 +169,12 @@ unsafe extern "system" fn win32_main_window_proc(
 }
 
 fn render() {
-    for x in 0..100 {
-        for y in 0..100 {
-            put_pixel(x, y, 255, 0, 255);
-        }
+    for [x, y] in line_iter(200, 200, 300, 250) {
+        put_pixel(x, y, 255, 255, 255);
+    }
+
+    for [x, y] in line_iter(200, 200, 400, 200) {
+        put_pixel(x, y, 255, 255, 255);
     }
 }
 
