@@ -6,3 +6,6 @@ edition = "2018"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["libloaderapi", "winuser", "memoryapi"] }
+
+[dependencies]
+sdl2-sys = { version = "0.32", features = [ "bundled" ] }
