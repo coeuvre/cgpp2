@@ -2,9 +2,12 @@ use sdl2_sys::*;
 use std::ffi::CString;
 use std::ptr::{null, null_mut};
 
+mod pixel;
 mod line;
+mod triangle;
 
 use crate::line::*;
+use crate::triangle::*;
 
 fn main() {
     unsafe {
@@ -77,20 +80,24 @@ unsafe fn run() {
 
                 let pixels = pixels as *mut u8;
 
-                let set_pixel = |x: i32, y: i32, r: u8, g: u8, b: u8, a: u8| {
+                let set_pixel = |x: i32, y: i32, r: f32, g: f32, b: f32, a: f32| {
                     let pixel = pixels.offset((pitch * y + x * 4) as isize);
-                    *pixel.offset(0) = a;
-                    *pixel.offset(1) = b;
-                    *pixel.offset(2) = g;
-                    *pixel.offset(3) = r;
+                    *pixel.offset(0) = (((a * 255.0).round() as i32) & 0xFF) as u8;
+                    *pixel.offset(1) = (((b * 255.0).round() as i32) & 0xFF) as u8;
+                    *pixel.offset(2) = (((g * 255.0).round() as i32) & 0xFF) as u8;
+                    *pixel.offset(3) = (((r * 255.0).round() as i32) & 0xFF) as u8;
                 };
 
-                for [x, y] in line_iter(100, 100, 200, 300) {
-                    set_pixel(x, y, 0xFF, 0xFF, 0xFF, 0xFF);
+                for p in line_iter(100, 100, 200, 300) {
+                    set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
                 }
 
-                for [x, y] in line_iter(100, 100, 200, 200) {
-                    set_pixel(x, y, 0xFF, 0xFF, 0xFF, 0xFF);
+                for p in line_iter(100, 100, 200, 200) {
+                    set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
+                }
+
+                for p in fill_triangle_iter(100.0, 100.0, 200.0, 100.0, 190.0, 150.0) {
+                    set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
                 }
 
                 SDL_UnlockTexture(texture);

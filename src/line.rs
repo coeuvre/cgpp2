@@ -1,3 +1,5 @@
+use crate::pixel::Pixel;
+
 // Bresenham's Line Algorithm
 pub struct LineIter {
     x: i32,
@@ -60,13 +62,13 @@ impl LineIter {
 }
 
 impl Iterator for LineIter {
-    type Item = [i32; 2];
+    type Item = Pixel;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.n > 0 {
             self.n -= 1;
 
-            let result = Some([self.x, self.y]);
+            let result = Some(Pixel { x: self.x, y: self.y, aa: 1.0 });
 
             if self.dx > self.dy {
                 self.x += self.inc_x;
@@ -105,97 +107,97 @@ mod test {
 
     #[test]
     fn test_octant_1() {
-        let points: Vec<_> = line_iter(0, 0, 4, 3).collect();
+        let points: Vec<_> = line_iter(0, 0, 4, 3).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[0, 0], [1, 1], [2, 1], [3, 2], [4, 3]]);
     }
 
     #[test]
     fn test_symmetry_1() {
-        let points: Vec<_> = line_iter(4, 3, 0, 0).collect();
+        let points: Vec<_> = line_iter(4, 3, 0, 0).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[4, 3], [3, 2], [2, 1], [1, 1], [0, 0]]);
     }
 
     #[test]
     fn test_octant_2() {
-        let points: Vec<_> = line_iter(0, 0, 3, 4).collect();
+        let points: Vec<_> = line_iter(0, 0, 3, 4).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[0, 0], [1, 1], [1, 2], [2, 3], [3, 4]]);
     }
 
     #[test]
     fn test_symmetry_2() {
-        let points: Vec<_> = line_iter(3, 4, 0, 0).collect();
+        let points: Vec<_> = line_iter(3, 4, 0, 0).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[3, 4], [2, 3], [1, 2], [1, 1], [0, 0]]);
     }
 
     #[test]
     fn test_octant_3() {
-        let points: Vec<_> = line_iter(0, 0, -3, 4).collect();
+        let points: Vec<_> = line_iter(0, 0, -3, 4).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[0, 0], [-1, 1], [-1, 2], [-2, 3], [-3, 4]]);
     }
 
     #[test]
     fn test_symmetry_3() {
-        let points: Vec<_> = line_iter(-3, 4, 0, 0).collect();
+        let points: Vec<_> = line_iter(-3, 4, 0, 0).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[-3, 4], [-2, 3], [-1, 2], [-1, 1], [0, 0]]);
     }
 
     #[test]
     fn test_octant_4() {
-        let points: Vec<_> = line_iter(0, 0, -4, 3).collect();
+        let points: Vec<_> = line_iter(0, 0, -4, 3).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[0, 0], [-1, 1], [-2, 2], [-3, 2], [-4, 3]]);
     }
 
     #[test]
     fn test_symmetry_4() {
-        let points: Vec<_> = line_iter(-4, 3, 0, 0).collect();
+        let points: Vec<_> = line_iter(-4, 3, 0, 0).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[-4, 3], [-3, 2], [-2, 2], [-1, 1], [0, 0]]);
     }
 
     #[test]
     fn test_octant_5() {
-        let points: Vec<_> = line_iter(0, 0, -4, -3).collect();
+        let points: Vec<_> = line_iter(0, 0, -4, -3).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[0, 0], [-1, -1], [-2, -2], [-3, -2], [-4, -3]]);
     }
 
     #[test]
     fn test_symmetry_5() {
-        let points: Vec<_> = line_iter(-4, -3, 0, 0).collect();
+        let points: Vec<_> = line_iter(-4, -3, 0, 0).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[-4, -3], [-3, -2], [-2, -2], [-1, -1], [0, 0]]);
     }
 
     #[test]
     fn test_octant_6() {
-        let points: Vec<_> = line_iter(0, 0, -3, -4).collect();
+        let points: Vec<_> = line_iter(0, 0, -3, -4).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[0, 0], [-1, -1], [-2, -2], [-2, -3], [-3, -4]]);
     }
 
     #[test]
     fn test_symmetry_6() {
-        let points: Vec<_> = line_iter(-3, -4, 0, 0).collect();
+        let points: Vec<_> = line_iter(-3, -4, 0, 0).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[-3, -4], [-2, -3], [-2, -2], [-1, -1], [0, 0]]);
     }
 
     #[test]
     fn test_octant_7() {
-        let points: Vec<_> = line_iter(0, 0, 3, -4).collect();
+        let points: Vec<_> = line_iter(0, 0, 3, -4).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[0, 0], [1, -1], [2, -2], [2, -3], [3, -4]]);
     }
 
     #[test]
     fn test_symmetry_7() {
-        let points: Vec<_> = line_iter(3, -4, 0, 0).collect();
+        let points: Vec<_> = line_iter(3, -4, 0, 0).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[3, -4], [2, -3], [2, -2], [1, -1], [0, 0]]);
     }
 
     #[test]
     fn test_octant_8() {
-        let points: Vec<_> = line_iter(0, 0, 4, -3).collect();
+        let points: Vec<_> = line_iter(0, 0, 4, -3).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[0, 0], [1, -1], [2, -1], [3, -2], [4, -3]]);
     }
 
     #[test]
     fn test_symmetry_8() {
-        let points: Vec<_> = line_iter(4, -3, 0, 0).collect();
+        let points: Vec<_> = line_iter(4, -3, 0, 0).map(|p| { [p.x, p.y] }).collect();
         assert_eq!(points, vec![[4, -3], [3, -2], [2, -1], [1, -1], [0, 0]]);
     }
 }
