@@ -2,9 +2,9 @@ use sdl2_sys::*;
 use std::ffi::CString;
 use std::ptr::{null, null_mut};
 
-mod pixel;
 mod line;
 mod triangle;
+mod types;
 
 use crate::line::*;
 use crate::triangle::*;
@@ -96,7 +96,9 @@ unsafe fn run() {
                     set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
                 }
 
-                for p in fill_triangle_iter(100.0, 100.0, 200.0, 100.0, 190.0, 150.0) {
+                for p in fill_triangle_iter(
+                    100.0, 100.0, 200.0, 100.0, 190.0, 150.0, 0, 0, width, height,
+                ) {
                     set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
                 }
 
