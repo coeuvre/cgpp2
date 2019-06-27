@@ -26,17 +26,6 @@ pub struct FillTriangleIter {
 
 impl FillTriangleIter {
     pub fn new(ax: f32, ay: f32, mut bx: f32, mut by: f32, mut cx: f32, mut cy: f32) -> FillTriangleIter {
-        // Change verticies order to clockwise
-        {
-            let (abx, aby) = vec(ax, ay, bx, by);
-            let (acx, acy) = vec(ax, ay, cx, cy);
-            if perp_dot(acx, acy, abx, aby) < 0.0 {
-                swap(&mut bx, &mut cx);
-                swap(&mut by, &mut cy);
-            }
-        }
-
-
         let minx = ax.min(bx).min(cx).floor() as i32;
         let miny = ay.min(by).min(cy).floor() as i32;
         let maxx = ax.max(bx).max(cx).ceil() as i32;
@@ -98,7 +87,7 @@ impl Iterator for FillTriangleIter {
             let c2 = perp_dot(self.bax, self.bay, bpx, bpy);
             let c3 = perp_dot(self.cbx, self.cby, cpx, cpy);
 
-            if c1 >= 0.0 && c2 >= 0.0 && c3 >= 0.0 {
+            if c1 >= 0.0 && c2 >= 0.0 && c3 >= 0.0 || c1 <= 0.0 && c2 <= 0.0 && c3 <= 0.0{
                 return Some(Pixel { x: ix, y: iy, aa: 1.0 });
             }
         }
