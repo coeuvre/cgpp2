@@ -102,6 +102,12 @@ unsafe fn run() {
                     set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
                 }
 
+                for p in fill_triangle_iter(
+                    200.0, 100.0, 400.0, 150.0, 190.0, 150.0, 0, 0, width, height,
+                ) {
+                    set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
+                }
+
                 SDL_UnlockTexture(texture);
             }
 

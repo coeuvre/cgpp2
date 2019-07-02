@@ -64,8 +64,14 @@ impl Iterator for FillTriangleIter {
             let w0 = signed_area(self.v1, self.v2, p);
             let w1 = signed_area(self.v2, self.v0, p);
             let w2 = signed_area(self.v0, self.v1, p);
+            let b0 = is_top_left(self.v1, self.v2);
+            let b1 = is_top_left(self.v2, self.v0);
+            let b2 = is_top_left(self.v0, self.v1);
 
-            if w0 >= 0.0 && w1 >= 0.0 && w2 >= 0.0 {
+            if (w0 > 0.0 || b0 && w0 == 0.0)
+                && (w1 > 0.0 || b1 && w1 == 0.0)
+                && (w2 > 0.0 || b2 && w2 == 0.0)
+            {
                 return Some(Pixel {
                     x: ix,
                     y: iy,
@@ -101,4 +107,55 @@ pub fn fill_triangle_iter(
 
 fn signed_area(a: Point, b: Point, c: Point) -> f32 {
     (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+}
+
+fn is_top_left(a: Point, b: Point) -> bool {
+    // In a counter-clockwise triangle, a top edge is an edge that is exactly horizontal,
+    // and goes towards the left, i.e. its end point is left of its start point.
+    //
+    // In a counter-clockwise triangle, a left edge is an edge that goes down,
+    // i.e. its end point is strictly below its start point.
+    //
+    // See https://fgiesen.wordpress.com/2013/02/08/triangle-rasterization-in-practice/
+    // See https://docs.microsoft.com/zh-cn/windows/desktop/direct3d11/d3d10-graphics-programming-guide-rasterizer-stage-rules#Triangle
+    if a.y == b.y {
+        b.x < a.x
+    } else {
+        b.y < a.y
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::collections::HashMap;
+
+    const WIDTH: i32 = 1000;
+    const HEIGHT: i32 = 1000;
+
+    fn assert_no_overlapped<I1, I2>(p1: I1, p2: I2)
+    where
+        I1: Iterator<Item = Pixel>,
+        I2: Iterator<Item = Pixel>,
+    {
+        let mut counts = HashMap::new();
+        for p in p1.chain(p2) {
+            *counts.entry((p.x, p.y)).or_insert(0u32) += 1u32;
+        }
+
+        for (_, count) in counts {
+            assert_eq!(count, 1);
+        }
+    }
+
+    #[test]
+    fn test_fill_rule() {
+        let p1 = fill_triangle_iter(
+            100.0, 100.0, 200.0, 100.0, 190.0, 150.0, 0, 0, WIDTH, HEIGHT,
+        );
+        let p2 = fill_triangle_iter(
+            200.0, 100.0, 400.0, 150.0, 190.0, 150.0, 0, 0, WIDTH, HEIGHT,
+        );
+        assert_no_overlapped(p1, p2);
+    }
 }
