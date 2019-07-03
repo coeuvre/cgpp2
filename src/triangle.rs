@@ -60,7 +60,8 @@ impl Iterator for FillTriangleIter {
             debug_assert!(ix >= self.minx && ix < self.maxx);
             debug_assert!(iy >= self.miny && iy < self.maxy);
 
-            let p = Point::new(ix as f32, iy as f32);
+            // Pixel center is at (0.5, 0.5)
+            let p = Point::new(ix as f32 + 0.5, iy as f32 + 0.5);
             let w0 = signed_area(self.v1, self.v2, p);
             let w1 = signed_area(self.v2, self.v0, p);
             let w2 = signed_area(self.v0, self.v1, p);
@@ -128,34 +129,130 @@ fn is_top_left(a: Point, b: Point) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::collections::HashMap;
 
     const WIDTH: i32 = 1000;
     const HEIGHT: i32 = 1000;
 
-    fn assert_no_overlapped<I1, I2>(p1: I1, p2: I2)
-    where
-        I1: Iterator<Item = Pixel>,
-        I2: Iterator<Item = Pixel>,
-    {
-        let mut counts = HashMap::new();
-        for p in p1.chain(p2) {
-            *counts.entry((p.x, p.y)).or_insert(0u32) += 1u32;
-        }
+    struct PixelCoordIter {
+        pixel: Pixel,
+        i: i32,
+    }
 
-        for (_, count) in counts {
-            assert_eq!(count, 1);
+    impl PixelCoordIter {
+        pub fn new(pixel: Pixel) -> PixelCoordIter {
+            PixelCoordIter { pixel, i: 0 }
         }
     }
 
+    impl Iterator for PixelCoordIter {
+        type Item = i32;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let result = match self.i {
+                0 => Some(self.pixel.x),
+                1 => Some(self.pixel.y),
+                _ => None,
+            };
+
+            self.i += 1;
+
+            result
+        }
+    }
+
+    fn assert_filled_pixels(points: [f32; 6], pixels: Vec<i32>) {
+        let output = fill_triangle_iter(
+            points[0], points[1], points[2], points[3], points[4], points[5], 0, 0, WIDTH, HEIGHT,
+        )
+        .flat_map(|p| PixelCoordIter::new(p))
+        .collect::<Vec<_>>();
+        assert_eq!(output, pixels);
+    }
+
     #[test]
-    fn test_fill_rule() {
-        let p1 = fill_triangle_iter(
-            100.0, 100.0, 200.0, 100.0, 190.0, 150.0, 0, 0, WIDTH, HEIGHT,
-        );
-        let p2 = fill_triangle_iter(
-            200.0, 100.0, 400.0, 150.0, 190.0, 150.0, 0, 0, WIDTH, HEIGHT,
-        );
-        assert_no_overlapped(p1, p2);
+    fn test_fill_rule1() {
+        let points = [4.5, 7.5, 4.5, 7.5, 4.5, 7.5];
+        let pixels = vec![];
+        assert_filled_pixels(points, pixels);
+    }
+
+    #[test]
+    fn test_fill_rule2() {
+        let points = [1.0, 2.0, 5.0, 2.0, 7.0, 4.0];
+        let pixels = vec![2, 2, 3, 2, 4, 2, 5, 3];
+        assert_filled_pixels(points, pixels);
+
+        let points = [5.0, 2.0, 8.0, 1.0, 7.0, 4.0];
+        let pixels = vec![6, 1, 7, 1, 5, 2, 6, 2, 6, 3];
+        assert_filled_pixels(points, pixels);
+
+        let points = [8.0, 1.0, 9.0, 2.5, 7.0, 4.0];
+        let pixels = vec![7, 2, 8, 2, 7, 3];
+        assert_filled_pixels(points, pixels);
+    }
+
+    #[test]
+    fn test_fill_rule3() {
+        let points = [9.5, 0.5, 9.5, -1.5, 10.5, 0.5];
+        let pixels = vec![9, 0];
+        assert_filled_pixels(points, pixels);
+    }
+
+    #[test]
+    fn test_fill_rule4() {
+        let points = [11.5, 3.5, 11.5, 1.5, 12.5, 2.5];
+        let pixels = vec![11, 2];
+        assert_filled_pixels(points, pixels);
+    }
+
+    #[test]
+    fn test_fill_rule5() {
+        let points = [12.5, 2.5, 12.5, 0.5, 14.5, 2.5];
+        let pixels = vec![12, 1, 12, 2, 13, 2];
+        assert_filled_pixels(points, pixels);
+
+        let points = [14.5, 2.5, 12.5, 0.5, 14.5, 0.5];
+        let pixels = vec![13, 1];
+        assert_filled_pixels(points, pixels);
+    }
+
+    #[test]
+    fn test_fill_rule6() {
+        let points = [1.0, 7.0, 2.0, 4.0, 6.0, 6.0];
+        let pixels = vec![2, 4, 1, 5, 2, 5, 3, 5, 4, 5, 1, 6, 2, 6];
+        assert_filled_pixels(points, pixels);
+    }
+
+    #[test]
+    fn test_fill_rule7() {
+        let points = [5.2, 6.8, 6.2, 6.8, 6.2, 7.8];
+        let pixels = vec![];
+        assert_filled_pixels(points, pixels);
+
+        let points = [6.5, 6.5, 7.5, 6.5, 7.5, 7.5];
+        let pixels = vec![];
+        assert_filled_pixels(points, pixels);
+    }
+
+    #[test]
+    fn test_fill_rule8() {
+        let points = [7.8, 5.5, 9.5, 2.8, 11.8, 5.5];
+        let pixels = vec![9, 3, 8, 4, 9, 4, 10, 4, 8, 5, 9, 5, 10, 5, 11, 5];
+        assert_filled_pixels(points, pixels);
+
+        let points = [7.8, 5.5, 11.8, 5.5, 9.8, 7.2];
+        let pixels = vec![9, 6, 10, 6];
+        assert_filled_pixels(points, pixels);
+    }
+
+    #[test]
+    fn test_fill_rule9() {
+        let points = [13.5, 6.5, 14.5, 3.5, 14.5, 5.5];
+        let pixels = vec![];
+        assert_filled_pixels(points, pixels);
+
+        let points = [13.5, 6.5, 14.5, 5.5, 15.0, 8.0];
+        let pixels = vec![13, 6, 14, 6, 14, 7];
+        assert_filled_pixels(points, pixels);
     }
 }
