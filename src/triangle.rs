@@ -1,17 +1,31 @@
 use crate::types::*;
 
 // Half-Space Rasterization
+// See: https://fgiesen.wordpress.com/2013/02/08/triangle-rasterization-in-practice/
+// See: https://fgiesen.wordpress.com/2013/02/10/optimizing-the-basic-rasterizer/
 // TODO: Optimization
 pub struct FillTriangleIter {
-    v0: Point,
-    v1: Point,
-    v2: Point,
     minx: i32,
     miny: i32,
     maxx: i32,
     maxy: i32,
     ix: i32,
     iy: i32,
+    a01: f32,
+    a12: f32,
+    a20: f32,
+    b01: f32,
+    b12: f32,
+    b20: f32,
+    w0_row: f32,
+    w1_row: f32,
+    w2_row: f32,
+    w0: f32,
+    w1: f32,
+    w2: f32,
+    b0: bool,
+    b1: bool,
+    b2: bool,
 }
 
 impl FillTriangleIter {
@@ -24,16 +38,39 @@ impl FillTriangleIter {
         let maxx = v0.x.max(v1.x).max(v2.x).ceil().min(clip.max.x) as i32;
         let maxy = v0.y.max(v1.y).max(v2.y).ceil().min(clip.max.y) as i32;
 
+        // Pixel center is at (0.5, 0.5)
+        let ix = minx;
+        let iy = miny;
+        let p = Point::new(ix as f32 + 0.5, iy as f32 + 0.5);
+        let w0 = signed_area(v1, v2, p);
+        let w1 = signed_area(v2, v0, p);
+        let w2 = signed_area(v0, v1, p);
+        let b0 = is_top_left(v1, v2);
+        let b1 = is_top_left(v2, v0);
+        let b2 = is_top_left(v0, v1);
+
         FillTriangleIter {
-            v0,
-            v1,
-            v2,
             minx,
             miny,
             maxx,
             maxy,
-            ix: minx,
-            iy: miny,
+            ix,
+            iy,
+            a01: v0.y - v1.y,
+            a12: v1.y - v2.y,
+            a20: v2.y - v0.y,
+            b01: v1.x - v0.x,
+            b12: v2.x - v1.x,
+            b20: v0.x - v2.x,
+            w0_row: w0,
+            w1_row: w1,
+            w2_row: w2,
+            w0,
+            w1,
+            w2,
+            b0,
+            b1,
+            b2,
         }
     }
 }
@@ -44,8 +81,15 @@ impl Iterator for FillTriangleIter {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.ix >= self.maxx {
-                self.ix = self.minx;
                 self.iy += 1;
+                self.w0_row += self.b12;
+                self.w1_row += self.b20;
+                self.w2_row += self.b01;
+
+                self.ix = self.minx;
+                self.w0 = self.w0_row;
+                self.w1 = self.w1_row;
+                self.w2 = self.w2_row;
 
                 if self.iy >= self.maxy {
                     return None;
@@ -55,23 +99,21 @@ impl Iterator for FillTriangleIter {
             let ix = self.ix;
             let iy = self.iy;
 
+            debug_assert!(self.ix >= self.minx && self.ix < self.maxx);
+            debug_assert!(self.iy >= self.miny && self.iy < self.maxy);
+
+            let w0 = self.w0;
+            let w1 = self.w1;
+            let w2 = self.w2;
+
             self.ix += 1;
+            self.w0 += self.a12;
+            self.w1 += self.a20;
+            self.w2 += self.a01;
 
-            debug_assert!(ix >= self.minx && ix < self.maxx);
-            debug_assert!(iy >= self.miny && iy < self.maxy);
-
-            // Pixel center is at (0.5, 0.5)
-            let p = Point::new(ix as f32 + 0.5, iy as f32 + 0.5);
-            let w0 = signed_area(self.v1, self.v2, p);
-            let w1 = signed_area(self.v2, self.v0, p);
-            let w2 = signed_area(self.v0, self.v1, p);
-            let b0 = is_top_left(self.v1, self.v2);
-            let b1 = is_top_left(self.v2, self.v0);
-            let b2 = is_top_left(self.v0, self.v1);
-
-            if (w0 > 0.0 || b0 && w0 == 0.0)
-                && (w1 > 0.0 || b1 && w1 == 0.0)
-                && (w2 > 0.0 || b2 && w2 == 0.0)
+            if (w0 > 0.0 || self.b0 && w0 == 0.0)
+                && (w1 > 0.0 || self.b1 && w1 == 0.0)
+                && (w2 > 0.0 || self.b2 && w2 == 0.0)
             {
                 return Some(Pixel {
                     x: ix,
