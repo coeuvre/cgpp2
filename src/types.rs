@@ -1,3 +1,4 @@
+#[derive(Copy, Clone)]
 pub struct Pixel {
     pub x: i32,
     pub y: i32,
@@ -16,6 +17,7 @@ impl Point {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Rect {
     pub min: Point,
     pub max: Point,

@@ -2,16 +2,32 @@ use sdl2_sys::*;
 use std::ffi::CString;
 use std::ptr::{null, null_mut};
 
-mod line;
-mod triangle;
-mod types;
+pub struct Canvas<'a> {
+    width: i32,
+    height: i32,
+    set_pixel_fn: &'a dyn Fn(i32, i32, f32, f32, f32, f32),
+}
 
-use crate::line::*;
-use crate::triangle::*;
+impl<'a> Canvas<'a> {
+    pub fn set_pixel(&mut self, x: i32, y: i32, r: f32, g: f32, b: f32, a: f32) {
+        (self.set_pixel_fn)(x, y, r, g, b, a);
+    }
 
-fn main() {
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+
+    pub fn height(&self) -> i32 {
+        self.height
+    }
+}
+
+pub fn setup<F>(callback: F)
+where
+    F: Fn(&mut Canvas),
+{
     unsafe {
-        run();
+        run(callback);
     }
 }
 
@@ -22,7 +38,10 @@ macro_rules! sdl_error {
     }};
 }
 
-unsafe fn run() {
+unsafe fn run<F>(callback: F)
+where
+    F: Fn(&mut Canvas),
+{
     let width = 1280;
     let height = 720;
 
@@ -88,25 +107,13 @@ unsafe fn run() {
                     *pixel.offset(3) = (((r * 255.0).round() as i32) & 0xFF) as u8;
                 };
 
-                for p in line_iter(100, 100, 200, 300) {
-                    set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
-                }
+                let mut canvas = Canvas {
+                    width,
+                    height,
+                    set_pixel_fn: &set_pixel,
+                };
 
-                for p in line_iter(100, 100, 200, 200) {
-                    set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
-                }
-
-                for p in fill_triangle_iter(
-                    100.0, 100.0, 200.0, 100.0, 190.0, 150.0, 0, 0, width, height,
-                ) {
-                    set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
-                }
-
-                for p in fill_triangle_iter(
-                    200.0, 100.0, 400.0, 150.0, 190.0, 150.0, 0, 0, width, height,
-                ) {
-                    set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
-                }
+                callback(&mut canvas);
 
                 SDL_UnlockTexture(texture);
             }
