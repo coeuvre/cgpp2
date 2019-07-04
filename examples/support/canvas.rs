@@ -2,23 +2,81 @@ use sdl2_sys::*;
 use std::ffi::CString;
 use std::ptr::{null, null_mut};
 
-pub struct Canvas<'a> {
+use cgpp2::line::*;
+use cgpp2::triangle::*;
+
+struct ReadonlyCanvas {
     width: i32,
     height: i32,
-    set_pixel_fn: &'a dyn Fn(i32, i32, f32, f32, f32, f32),
+    texture: *mut SDL_Texture,
+}
+
+impl ReadonlyCanvas {
+    pub fn new(width: i32, height: i32, texture: *mut SDL_Texture) -> ReadonlyCanvas {
+        ReadonlyCanvas {
+            width,
+            height,
+            texture,
+        }
+    }
+
+    pub fn lock(&mut self) -> Canvas {
+        let mut pixels = null_mut();
+        let mut pitch = 0;
+        unsafe {
+            SDL_LockTexture(self.texture, null_mut(), &mut pixels, &mut pitch);
+        }
+        Canvas {
+            data: self,
+            pixels: pixels as *mut u8,
+            pitch,
+        }
+    }
+}
+
+pub struct Canvas<'a> {
+    data: &'a mut ReadonlyCanvas,
+    pixels: *mut u8,
+    pitch: i32,
 }
 
 impl<'a> Canvas<'a> {
     pub fn set_pixel(&mut self, x: i32, y: i32, r: f32, g: f32, b: f32, a: f32) {
-        (self.set_pixel_fn)(x, y, r, g, b, a);
+        unsafe {
+            let pixel = self.pixels.offset((self.pitch * y + x * 4) as isize);
+            *pixel.offset(0) = (((a * 255.0).round() as i32) & 0xFF) as u8;
+            *pixel.offset(1) = (((b * 255.0).round() as i32) & 0xFF) as u8;
+            *pixel.offset(2) = (((g * 255.0).round() as i32) & 0xFF) as u8;
+            *pixel.offset(3) = (((r * 255.0).round() as i32) & 0xFF) as u8;
+        }
+    }
+
+    pub fn draw_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32) {
+        for p in line_iter(x0, y0, x1, y1) {
+            self.set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
+        }
+    }
+
+    pub fn fill_triangle(&mut self, ax: f32, ay: f32, bx: f32, by: f32, cx: f32, cy: f32) {
+        for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, self.width(), self.height()) {
+            self.set_pixel(p.x, p.y, 1.0 * p.aa, 1.0 * p.aa, 1.0 * p.aa, 1.0);
+        }
     }
 
     pub fn width(&self) -> i32 {
-        self.width
+        self.data.width
     }
 
     pub fn height(&self) -> i32 {
-        self.height
+        self.data.height
+    }
+}
+
+impl<'a> Drop for Canvas<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            SDL_UnlockTexture(self.data.texture);
+        }
     }
 }
 
@@ -83,6 +141,8 @@ where
         panic!("Failed to create SDL texture {}", sdl_error!());
     }
 
+    let mut readonly_canvas = ReadonlyCanvas::new(width, height, texture);
+
     'game: loop {
         let mut event = std::mem::uninitialized::<SDL_Event>();
         while SDL_PollEvent(&mut event) != 0 {
@@ -93,29 +153,8 @@ where
             }
 
             {
-                let mut pixels = null_mut();
-                let mut pitch = 0;
-                SDL_LockTexture(texture, null_mut(), &mut pixels, &mut pitch);
-
-                let pixels = pixels as *mut u8;
-
-                let set_pixel = |x: i32, y: i32, r: f32, g: f32, b: f32, a: f32| {
-                    let pixel = pixels.offset((pitch * y + x * 4) as isize);
-                    *pixel.offset(0) = (((a * 255.0).round() as i32) & 0xFF) as u8;
-                    *pixel.offset(1) = (((b * 255.0).round() as i32) & 0xFF) as u8;
-                    *pixel.offset(2) = (((g * 255.0).round() as i32) & 0xFF) as u8;
-                    *pixel.offset(3) = (((r * 255.0).round() as i32) & 0xFF) as u8;
-                };
-
-                let mut canvas = Canvas {
-                    width,
-                    height,
-                    set_pixel_fn: &set_pixel,
-                };
-
+                let mut canvas = readonly_canvas.lock();
                 callback(&mut canvas);
-
-                SDL_UnlockTexture(texture);
             }
 
             SDL_RenderClear(renderer);
