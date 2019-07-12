@@ -66,16 +66,21 @@ impl<'a> Canvas<'a> {
         }
     }
 
-    pub fn fill_triangle(&mut self, ax: f32, ay: f32, bx: f32, by: f32, cx: f32, cy: f32) {
+    pub fn fill_triangle(
+        &mut self,
+        ax: f32,
+        ay: f32,
+        bx: f32,
+        by: f32,
+        cx: f32,
+        cy: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
+    ) {
         for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, self.width(), self.height()) {
-            self.set_pixel(
-                p.x,
-                self.height() - p.y,
-                1.0 * p.aa,
-                1.0 * p.aa,
-                1.0 * p.aa,
-                1.0,
-            );
+            self.set_pixel(p.x, self.height() - p.y, r * p.aa, g * p.aa, b * p.aa, a);
         }
     }
 
@@ -96,9 +101,18 @@ impl<'a> Drop for Canvas<'a> {
     }
 }
 
+pub struct Input {
+    pub mouse: Mouse,
+}
+
+pub struct Mouse {
+    pub x: i32,
+    pub y: i32,
+}
+
 pub fn setup<F>(callback: F)
 where
-    F: Fn(&mut Canvas),
+    F: Fn(&Input, &mut Canvas),
 {
     unsafe {
         run(callback);
@@ -114,9 +128,9 @@ macro_rules! sdl_error {
 
 unsafe fn run<F>(callback: F)
 where
-    F: Fn(&mut Canvas),
+    F: Fn(&Input, &mut Canvas),
 {
-    let width = 1280;
+    let width = 720;
     let height = 720;
 
     if SDL_Init(SDL_INIT_VIDEO) != 0 {
@@ -159,6 +173,10 @@ where
 
     let mut readonly_canvas = ReadonlyCanvas::new(width, height, texture);
 
+    let mut input = Input {
+        mouse: Mouse { x: 0, y: 0 },
+    };
+
     'game: loop {
         let mut event = std::mem::uninitialized::<SDL_Event>();
         while SDL_PollEvent(&mut event) != 0 {
@@ -169,8 +187,12 @@ where
             }
 
             {
+                SDL_GetMouseState(&mut input.mouse.x, &mut input.mouse.y);
+            }
+
+            {
                 let mut canvas = readonly_canvas.lock();
-                callback(&mut canvas);
+                callback(&input, &mut canvas);
             }
 
             SDL_RenderClear(renderer);

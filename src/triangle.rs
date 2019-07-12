@@ -29,7 +29,11 @@ pub struct FillTriangleIter {
 }
 
 impl FillTriangleIter {
-    pub fn new(v0: Point, v1: Point, v2: Point, clip: Rect) -> FillTriangleIter {
+    pub fn new(v0: Point, mut v1: Point, mut v2: Point, clip: Rect) -> FillTriangleIter {
+        if signed_area(v0, v1, v2) < 0.0 {
+            std::mem::swap(&mut v1, &mut v2);
+        }
+
         // Only support counter-clockwise winding order
         debug_assert!(signed_area(v0, v1, v2) >= 0.0);
 
