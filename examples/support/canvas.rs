@@ -76,12 +76,12 @@ pub struct Mouse {
     pub y: i32,
 }
 
-pub fn setup<F>(callback: F)
+pub fn setup<F>(width: i32, height: i32, callback: F)
 where
-    F: Fn(&Input, &mut Canvas),
+    F: FnMut(&Input, &mut Canvas),
 {
     unsafe {
-        run(callback);
+        run(width, height, callback);
     }
 }
 
@@ -92,13 +92,10 @@ macro_rules! sdl_error {
     }};
 }
 
-unsafe fn run<F>(callback: F)
+unsafe fn run<F>(width: i32, height: i32, mut callback: F)
 where
-    F: Fn(&Input, &mut Canvas),
+    F: FnMut(&Input, &mut Canvas),
 {
-    let width = 720;
-    let height = 720;
-
     if SDL_Init(SDL_INIT_VIDEO) != 0 {
         panic!("Failed to init SDL {}", sdl_error!());
     }

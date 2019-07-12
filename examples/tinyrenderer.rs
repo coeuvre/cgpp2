@@ -4,6 +4,8 @@ use std::io::BufReader;
 pub mod support;
 
 use cgpp2::triangle::*;
+use image::GenericImageView;
+use obj::TexturedVertex;
 use std::ops::{Mul, Neg, Sub};
 use support::canvas::*;
 
@@ -55,7 +57,8 @@ impl Mul for Vec3 {
     type Output = f32;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        self.e.iter().zip(rhs.e.iter()).map(|(a, b)| a * b).sum()
+        self.e[0] * rhs.e[0] + self.e[1] * rhs.e[1] + self.e[2] * rhs.e[2]
+        //        self.e.iter().zip(rhs.e.iter()).map(|(a, b)| a * b).sum()
     }
 }
 
@@ -68,13 +71,17 @@ impl Neg for Vec3 {
 }
 
 fn main() {
-    let input =
-        BufReader::new(File::open("data/african_head.obj").expect("Failed to find obj file"));
-    let model: obj::Obj = obj::load_obj(input).expect("Failed to load obj file");
+    let width = 720;
+    let height = 720;
 
-    setup(|input, canvas| {
-        let width = canvas.width();
-        let height = canvas.height();
+    let model_input =
+        BufReader::new(File::open("data/african_head.obj").expect("Failed to find obj file"));
+    let model: obj::Obj<TexturedVertex> =
+        obj::load_obj(model_input).expect("Failed to load obj file");
+    let texture =
+        image::open("data/african_head_diffuse.tga").expect("Failed to open texture file");
+
+    setup(width, height, |input, canvas| {
         let mut zbuffer = vec![std::f32::MAX; (width * height) as usize];
 
         let light_dir = Vec3::new(
@@ -92,25 +99,37 @@ fn main() {
         };
 
         for face in model.indices.chunks(3) {
-            let v0 = Vec3::with_elements(model.vertices[face[0] as usize].position);
-            let v1 = Vec3::with_elements(model.vertices[face[1] as usize].position);
-            let v2 = Vec3::with_elements(model.vertices[face[2] as usize].position);
+            let v0 = model.vertices[face[0] as usize];
+            let v1 = model.vertices[face[1] as usize];
+            let v2 = model.vertices[face[2] as usize];
 
-            let n = (v1 - v0).cross(v2 - v0).normalized();
+            let p0 = Vec3::with_elements(v0.position);
+            let p1 = Vec3::with_elements(v1.position);
+            let p2 = Vec3::with_elements(v2.position);
+
+            let n = (p1 - p0).cross(p2 - p0).normalized();
             let intensity = n * -light_dir;
 
             if intensity > 0.0 {
-                let (ax, ay) = model_to_screen_pos(v0);
-                let (bx, by) = model_to_screen_pos(v1);
-                let (cx, cy) = model_to_screen_pos(v2);
+                let (ax, ay) = model_to_screen_pos(p0);
+                let (bx, by) = model_to_screen_pos(p1);
+                let (cx, cy) = model_to_screen_pos(p2);
 
                 for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, width - 1, height - 1) {
                     let x = p.x;
                     let y = height - 1 - p.y;
-                    let z = p.w0 * v0.e[2] + p.w1 * v1.e[2] + p.w2 * v2.e[2];
+                    let w = Vec3::new(p.w0, p.w1, p.w2);
+                    let z = Vec3::new(p0.e[2], p1.e[2], p2.e[2]) * w;
 
                     if z < zbuffer[(y * width + x) as usize] {
                         zbuffer[(y * width + x) as usize] = z;
+
+                        let u = Vec3::new(v0.texture[0], v1.texture[0], v2.texture[0]) * w;
+                        let v = Vec3::new(v0.texture[1], v1.texture[1], v2.texture[1]) * w;
+                        let tp = texture.get_pixel(
+                            (u * texture.width() as f32).round() as u32,
+                            (v * texture.height() as f32).round() as u32,
+                        );
 
                         canvas.set_pixel(
                             x,
