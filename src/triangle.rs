@@ -80,7 +80,7 @@ impl FillTriangleIter {
 }
 
 impl Iterator for FillTriangleIter {
-    type Item = Pixel;
+    type Item = TriangleRasterizedPixel;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -119,14 +119,27 @@ impl Iterator for FillTriangleIter {
                 && (w1 > 0.0 || self.b1 && w1 == 0.0)
                 && (w2 > 0.0 || self.b2 && w2 == 0.0)
             {
-                return Some(Pixel {
+                return Some(TriangleRasterizedPixel {
                     x: ix,
                     y: iy,
                     aa: 1.0,
+                    w0,
+                    w1,
+                    w2,
                 });
             }
         }
     }
+}
+
+#[derive(Copy, Clone)]
+pub struct TriangleRasterizedPixel {
+    pub x: i32,
+    pub y: i32,
+    pub aa: f32,
+    pub w0: f32,
+    pub w1: f32,
+    pub w2: f32,
 }
 
 pub fn fill_triangle_iter(
@@ -180,12 +193,12 @@ mod test {
     const HEIGHT: i32 = 1000;
 
     struct PixelCoordIter {
-        pixel: Pixel,
+        pixel: TriangleRasterizedPixel,
         i: i32,
     }
 
     impl PixelCoordIter {
-        pub fn new(pixel: Pixel) -> PixelCoordIter {
+        pub fn new(pixel: TriangleRasterizedPixel) -> PixelCoordIter {
             PixelCoordIter { pixel, i: 0 }
         }
     }

@@ -2,9 +2,6 @@ use sdl2_sys::*;
 use std::ffi::CString;
 use std::ptr::{null, null_mut};
 
-use cgpp2::line::*;
-use cgpp2::triangle::*;
-
 struct ReadonlyCanvas {
     width: i32,
     height: i32,
@@ -42,45 +39,14 @@ pub struct Canvas<'a> {
 
 impl<'a> Canvas<'a> {
     pub fn set_pixel(&mut self, x: i32, y: i32, r: f32, g: f32, b: f32, a: f32) {
-        debug_assert!(x >= 0 || x < self.width());
-        debug_assert!(y >= 0 || y < self.height());
+        debug_assert!(x >= 0 && x < self.width());
+        debug_assert!(y >= 0 && y < self.height());
         unsafe {
             let pixel = self.pixels.offset((self.pitch * y + x * 4) as isize);
             *pixel.offset(0) = (((a * 255.0).round() as i32) & 0xFF) as u8;
             *pixel.offset(1) = (((b * 255.0).round() as i32) & 0xFF) as u8;
             *pixel.offset(2) = (((g * 255.0).round() as i32) & 0xFF) as u8;
             *pixel.offset(3) = (((r * 255.0).round() as i32) & 0xFF) as u8;
-        }
-    }
-
-    pub fn draw_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32) {
-        for p in line_iter(x0, y0, x1, y1) {
-            self.set_pixel(
-                p.x,
-                self.height() - p.y,
-                1.0 * p.aa,
-                1.0 * p.aa,
-                1.0 * p.aa,
-                1.0,
-            );
-        }
-    }
-
-    pub fn fill_triangle(
-        &mut self,
-        ax: f32,
-        ay: f32,
-        bx: f32,
-        by: f32,
-        cx: f32,
-        cy: f32,
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-    ) {
-        for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, self.width(), self.height()) {
-            self.set_pixel(p.x, self.height() - p.y, r * p.aa, g * p.aa, b * p.aa, a);
         }
     }
 

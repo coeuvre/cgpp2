@@ -3,6 +3,7 @@ use std::io::BufReader;
 
 pub mod support;
 
+use cgpp2::triangle::*;
 use std::ops::{Mul, Neg, Sub};
 use support::canvas::*;
 
@@ -74,6 +75,7 @@ fn main() {
     setup(|input, canvas| {
         let width = canvas.width();
         let height = canvas.height();
+        let mut zbuffer = vec![std::f32::MAX; (width * height) as usize];
 
         let light_dir = Vec3::new(
             (input.mouse.x as f32 / width as f32) * 2.0 - 1.0,
@@ -102,7 +104,24 @@ fn main() {
                 let (bx, by) = model_to_screen_pos(v1);
                 let (cx, cy) = model_to_screen_pos(v2);
 
-                canvas.fill_triangle(ax, ay, bx, by, cx, cy, intensity, intensity, intensity, 1.0);
+                for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, width - 1, height - 1) {
+                    let x = p.x;
+                    let y = height - 1 - p.y;
+                    let z = p.w0 * v0.e[2] + p.w1 * v1.e[2] + p.w2 * v2.e[2];
+
+                    if z < zbuffer[(y * width + x) as usize] {
+                        zbuffer[(y * width + x) as usize] = z;
+
+                        canvas.set_pixel(
+                            x,
+                            y,
+                            intensity * p.aa,
+                            intensity * p.aa,
+                            intensity * p.aa,
+                            1.0,
+                        );
+                    }
+                }
             }
         }
     });
