@@ -26,12 +26,15 @@ pub struct FillTriangleIter {
     b0: bool,
     b1: bool,
     b2: bool,
+    area2: f32,
 }
 
 impl FillTriangleIter {
     pub fn new(v0: Point, mut v1: Point, mut v2: Point, clip: Rect) -> FillTriangleIter {
-        if signed_area(v0, v1, v2) < 0.0 {
+        let mut area2 = signed_area(v0, v1, v2);
+        if area2 < 0.0 {
             std::mem::swap(&mut v1, &mut v2);
+            area2 = -area2;
         }
 
         // Only support counter-clockwise winding order
@@ -75,6 +78,7 @@ impl FillTriangleIter {
             b0,
             b1,
             b2,
+            area2,
         }
     }
 }
@@ -123,9 +127,9 @@ impl Iterator for FillTriangleIter {
                     x: ix,
                     y: iy,
                     aa: 1.0,
-                    w0,
-                    w1,
-                    w2,
+                    b0: w0 / self.area2,
+                    b1: w1 / self.area2,
+                    b2: w2 / self.area2,
                 });
             }
         }
@@ -137,9 +141,9 @@ pub struct TriangleRasterizedPixel {
     pub x: i32,
     pub y: i32,
     pub aa: f32,
-    pub w0: f32,
-    pub w1: f32,
-    pub w2: f32,
+    pub b0: f32,
+    pub b1: f32,
+    pub b2: f32,
 }
 
 pub fn fill_triangle_iter(

@@ -1,12 +1,12 @@
-use std::fs::File;
-use std::io::BufReader;
-
-pub mod support;
-
 use cgpp2::triangle::*;
 use image::GenericImageView;
 use obj::TexturedVertex;
+use std::fs::File;
+use std::io::BufReader;
 use std::ops::{Mul, Neg, Sub};
+
+pub mod support;
+
 use support::canvas::*;
 
 #[derive(Copy, Clone)]
@@ -71,8 +71,8 @@ impl Neg for Vec3 {
 }
 
 fn main() {
-    let width = 720;
-    let height = 720;
+    let width = 800;
+    let height = 800;
 
     let model_input =
         BufReader::new(File::open("data/african_head.obj").expect("Failed to find obj file"));
@@ -82,7 +82,7 @@ fn main() {
         image::open("data/african_head_diffuse.tga").expect("Failed to open texture file");
 
     setup(width, height, |input, canvas| {
-        let mut zbuffer = vec![std::f32::MAX; (width * height) as usize];
+        let mut zbuffer = vec![std::f32::MIN; (width * height) as usize];
 
         let light_dir = Vec3::new(
             (input.mouse.x as f32 / width as f32) * 2.0 - 1.0,
@@ -118,27 +118,37 @@ fn main() {
                 for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, width - 1, height - 1) {
                     let x = p.x;
                     let y = height - 1 - p.y;
-                    let w = Vec3::new(p.w0, p.w1, p.w2);
+                    let w = Vec3::new(p.b0, p.b1, p.b2);
                     let z = Vec3::new(p0.e[2], p1.e[2], p2.e[2]) * w;
 
-                    if z < zbuffer[(y * width + x) as usize] {
+                    if z > zbuffer[(y * width + x) as usize] {
                         zbuffer[(y * width + x) as usize] = z;
 
                         let u = Vec3::new(v0.texture[0], v1.texture[0], v2.texture[0]) * w;
                         let v = Vec3::new(v0.texture[1], v1.texture[1], v2.texture[1]) * w;
                         let tp = texture.get_pixel(
-                            (u * texture.width() as f32).round() as u32,
-                            (v * texture.height() as f32).round() as u32,
+                            ((u % 1.0) * (texture.width() - 1) as f32).round() as u32,
+                            texture.height()
+                                - ((v % 1.0) * (texture.height() - 1) as f32).round() as u32,
                         );
 
                         canvas.set_pixel(
                             x,
                             y,
-                            intensity * p.aa,
-                            intensity * p.aa,
-                            intensity * p.aa,
-                            1.0,
+                            (tp.data[0] as f32 / 255.0) * intensity * p.aa,
+                            (tp.data[1] as f32 / 255.0) * intensity * p.aa,
+                            (tp.data[2] as f32 / 255.0) * intensity * p.aa,
+                            (tp.data[3] as f32 / 255.0) * p.aa,
                         );
+
+                        //                        canvas.set_pixel(
+                        //                            x,
+                        //                            y,
+                        //                            intensity * p.aa,
+                        //                            intensity * p.aa,
+                        //                            intensity * p.aa,
+                        //                            1.0,
+                        //                        );
                     }
                 }
             }
