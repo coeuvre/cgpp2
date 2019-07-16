@@ -30,6 +30,8 @@ fn main() {
         )
     };
 
+    let calc_intensity = |n: Vec3, light_dir: Vec3| n * (light_dir - 2.0 * (light_dir * n) * n);
+
     setup(width, height, |_input, canvas| {
         let mut zbuffer = vec![std::f32::MIN; (width * height) as usize];
 
@@ -44,18 +46,20 @@ fn main() {
             let p1 = Vec3::with_elements(v1.position);
             let p2 = Vec3::with_elements(v2.position);
 
-            let n = (p1 - p0).cross(p2 - p0).normalized();
-            let intensity = n * (light_dir - 2.0 * (light_dir * n) * n);
+            let i0 = calc_intensity(Vec3::with_elements(v0.normal), light_dir);
+            let i1 = calc_intensity(Vec3::with_elements(v1.normal), light_dir);
+            let i2 = calc_intensity(Vec3::with_elements(v2.normal), light_dir);
 
-            if intensity > 0.0 {
-                let (ax, ay) = model_to_screen_pos(p0);
-                let (bx, by) = model_to_screen_pos(p1);
-                let (cx, cy) = model_to_screen_pos(p2);
+            let (ax, ay) = model_to_screen_pos(p0);
+            let (bx, by) = model_to_screen_pos(p1);
+            let (cx, cy) = model_to_screen_pos(p2);
 
-                for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, width - 1, height - 1) {
+            for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, width - 1, height - 1) {
+                let w = Vec3::new(p.b0, p.b1, p.b2);
+                let intensity = Vec3::new(i0, i1, i2) * w;
+                if intensity > 0.0 {
                     let x = p.x;
                     let y = height - 1 - p.y;
-                    let w = Vec3::new(p.b0, p.b1, p.b2);
                     let z = Vec3::new(p0.e[2], p1.e[2], p2.e[2]) * w;
 
                     if z > zbuffer[(y * width + x) as usize] {
