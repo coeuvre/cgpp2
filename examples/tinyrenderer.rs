@@ -60,7 +60,7 @@ fn main() {
                 if intensity > 0.0 {
                     let x = p.x;
                     let y = height - 1 - p.y;
-                    let z = Vec3::new(p0.e[2], p1.e[2], p2.e[2]) * w;
+                    let z = Vec3::new(p0.e[2] + 1.0, p1.e[2] + 1.0, p2.e[2] + 1.0) / 2.0 * w;
 
                     if z > zbuffer[(y * width + x) as usize] {
                         zbuffer[(y * width + x) as usize] = z;
