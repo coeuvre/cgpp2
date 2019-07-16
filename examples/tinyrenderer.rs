@@ -27,6 +27,7 @@ fn main() {
         (
             (p.e[0] + 1.0) * (width as f32) / 2.0,
             (p.e[1] + 1.0) * (height as f32) / 2.0,
+            (p.e[2] + 1.0) / 2.0,
         )
     };
 
@@ -50,9 +51,9 @@ fn main() {
             let i1 = calc_intensity(Vec3::with_elements(v1.normal), light_dir);
             let i2 = calc_intensity(Vec3::with_elements(v2.normal), light_dir);
 
-            let (ax, ay) = model_to_screen_pos(p0);
-            let (bx, by) = model_to_screen_pos(p1);
-            let (cx, cy) = model_to_screen_pos(p2);
+            let (ax, ay, az) = model_to_screen_pos(p0);
+            let (bx, by, bz) = model_to_screen_pos(p1);
+            let (cx, cy, cz) = model_to_screen_pos(p2);
 
             for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, width - 1, height - 1) {
                 let w = Vec3::new(p.b0, p.b1, p.b2);
@@ -60,7 +61,7 @@ fn main() {
                 if intensity > 0.0 {
                     let x = p.x;
                     let y = height - 1 - p.y;
-                    let z = Vec3::new(p0.e[2] + 1.0, p1.e[2] + 1.0, p2.e[2] + 1.0) / 2.0 * w;
+                    let z = Vec3::new(az, bz, cz) * w;
 
                     if z > zbuffer[(y * width + x) as usize] {
                         zbuffer[(y * width + x) as usize] = z;

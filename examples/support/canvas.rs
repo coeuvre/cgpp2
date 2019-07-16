@@ -43,10 +43,10 @@ impl<'a> Canvas<'a> {
         debug_assert!(y >= 0 && y < self.height());
         unsafe {
             let pixel = self.pixels.offset((self.pitch * y + x * 4) as isize);
-            *pixel.offset(0) = (((a.min(1.0).max(0.0) * 255.0).round() as i32) & 0xFF) as u8;
-            *pixel.offset(1) = (((b.min(1.0).max(0.0) * 255.0).round() as i32) & 0xFF) as u8;
-            *pixel.offset(2) = (((g.min(1.0).max(0.0) * 255.0).round() as i32) & 0xFF) as u8;
-            *pixel.offset(3) = (((r.min(1.0).max(0.0) * 255.0).round() as i32) & 0xFF) as u8;
+            *pixel.offset(0) = (((a * 255.0).round() as i32) & 0xFF) as u8;
+            *pixel.offset(1) = (((b * 255.0).round() as i32) & 0xFF) as u8;
+            *pixel.offset(2) = (((g * 255.0).round() as i32) & 0xFF) as u8;
+            *pixel.offset(3) = (((r * 255.0).round() as i32) & 0xFF) as u8;
         }
     }
 
