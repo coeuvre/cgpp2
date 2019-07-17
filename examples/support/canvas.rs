@@ -38,6 +38,12 @@ pub struct Canvas<'a> {
 }
 
 impl<'a> Canvas<'a> {
+    pub fn clear(&mut self) {
+        unsafe {
+            std::ptr::write_bytes(self.pixels, 0, (self.width() * self.height() * 4) as usize);
+        }
+    }
+
     pub fn set_pixel(&mut self, x: i32, y: i32, r: f32, g: f32, b: f32, a: f32) {
         debug_assert!(x >= 0 && x < self.width());
         debug_assert!(y >= 0 && y < self.height());
@@ -148,20 +154,17 @@ where
                 SDL_EventType::SDL_QUIT => break 'game,
                 _ => {}
             }
-
-            {
-                SDL_GetMouseState(&mut input.mouse.x, &mut input.mouse.y);
-            }
-
-            {
-                let mut canvas = readonly_canvas.lock();
-                callback(&input, &mut canvas);
-            }
-
-            SDL_RenderClear(renderer);
-            SDL_RenderCopy(renderer, texture, null(), null());
-            SDL_RenderPresent(renderer);
         }
+
+        SDL_GetMouseState(&mut input.mouse.x, &mut input.mouse.y);
+
+        {
+            let mut canvas = readonly_canvas.lock();
+            callback(&input, &mut canvas);
+        }
+
+        SDL_RenderCopy(renderer, texture, null(), null());
+        SDL_RenderPresent(renderer);
     }
 
     SDL_DestroyWindow(window);

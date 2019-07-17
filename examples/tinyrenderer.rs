@@ -33,7 +33,11 @@ fn main() {
 
     let calc_intensity = |n: Vec3, light_dir: Vec3| n * (light_dir - 2.0 * (light_dir * n) * n);
 
+    let mut rotation = 0.0;
+
     setup(width, height, |_input, canvas| {
+        canvas.clear();
+
         let camera = Mat4::look_at(
             Vec3::new(0.0, 0.0, 2.0),
             Vec3::new(0.0, 0.0, 0.0),
@@ -42,11 +46,11 @@ fn main() {
 
         let projection = Mat4::frustum(-1.0, 1.0, -1.0, 1.0, 1.0, 3.0);
 
-        let model_transform = Mat4::translate(Vec3::new(0.0, 0.0, 0.0));
+        let model_transform = Mat4::rorate_y(rotation);
+        rotation += 0.01;
 
-        let model_to_camera = camera * model_transform;
-
-        let model_to_clip = projection * model_to_camera;
+        let mvp = projection * camera * model_transform;
+        //        let mvp_normal = mvp.transpose().inverse().unwrap();
 
         let mut zbuffer = vec![std::f32::MIN; (width * height) as usize];
 
@@ -61,9 +65,9 @@ fn main() {
             let p1 = Vec4::from_vec3(Vec3::with_elements(v1.position), 1.0);
             let p2 = Vec4::from_vec3(Vec3::with_elements(v2.position), 1.0);
 
-            let c0 = model_to_clip * p0;
-            let c1 = model_to_clip * p1;
-            let c2 = model_to_clip * p2;
+            let c0 = mvp * p0;
+            let c1 = mvp * p1;
+            let c2 = mvp * p2;
 
             let i0 = calc_intensity(Vec3::with_elements(v0.normal), light_dir);
             let i1 = calc_intensity(Vec3::with_elements(v1.normal), light_dir);
@@ -86,8 +90,8 @@ fn main() {
 
                         let u = Vec3::new(v0.texture[0], v1.texture[0], v2.texture[0]) * w;
                         let v = Vec3::new(v0.texture[1], v1.texture[1], v2.texture[1]) * w;
-                        debug_assert!(u >= 0.0 && u <= 1.0);
-                        debug_assert!(v >= 0.0 && v <= 1.0);
+                        assert!(u >= 0.0 && u <= 1.0);
+                        assert!(v >= 0.0 && v <= 1.0);
                         let tp = texture.get_pixel(
                             (u * (texture.width() - 1) as f32).round() as u32,
                             ((1.0 - v) * (texture.height() - 1) as f32).round() as u32,
