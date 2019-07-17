@@ -23,17 +23,31 @@ fn main() {
     let texture =
         image::open("data/african_head_diffuse.tga").expect("Failed to open texture file");
 
-    let model_to_screen_pos = |p: Vec3| {
+    let ndc_to_screen = |p: Vec3| {
         (
             (p.e[0] + 1.0) * (width as f32) / 2.0,
             (p.e[1] + 1.0) * (height as f32) / 2.0,
-            (p.e[2] + 1.0) / 2.0,
+            (-p.e[2] + 1.0) / 2.0,
         )
     };
 
     let calc_intensity = |n: Vec3, light_dir: Vec3| n * (light_dir - 2.0 * (light_dir * n) * n);
 
     setup(width, height, |_input, canvas| {
+        let camera = Mat4::look_at(
+            Vec3::new(0.0, 0.0, 2.0),
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        );
+
+        let projection = Mat4::frustum(-1.0, 1.0, -1.0, 1.0, 1.0, 3.0);
+
+        let model_transform = Mat4::translate(Vec3::new(0.0, 0.0, 0.0));
+
+        let model_to_camera = camera * model_transform;
+
+        let model_to_clip = projection * model_to_camera;
+
         let mut zbuffer = vec![std::f32::MIN; (width * height) as usize];
 
         let light_dir = Vec3::new(0.0, 0.0, -1.0).normalized();
@@ -43,17 +57,21 @@ fn main() {
             let v1 = model.vertices[face[1] as usize];
             let v2 = model.vertices[face[2] as usize];
 
-            let p0 = Vec3::with_elements(v0.position);
-            let p1 = Vec3::with_elements(v1.position);
-            let p2 = Vec3::with_elements(v2.position);
+            let p0 = Vec4::from_vec3(Vec3::with_elements(v0.position), 1.0);
+            let p1 = Vec4::from_vec3(Vec3::with_elements(v1.position), 1.0);
+            let p2 = Vec4::from_vec3(Vec3::with_elements(v2.position), 1.0);
+
+            let c0 = model_to_clip * p0;
+            let c1 = model_to_clip * p1;
+            let c2 = model_to_clip * p2;
 
             let i0 = calc_intensity(Vec3::with_elements(v0.normal), light_dir);
             let i1 = calc_intensity(Vec3::with_elements(v1.normal), light_dir);
             let i2 = calc_intensity(Vec3::with_elements(v2.normal), light_dir);
 
-            let (ax, ay, az) = model_to_screen_pos(p0);
-            let (bx, by, bz) = model_to_screen_pos(p1);
-            let (cx, cy, cz) = model_to_screen_pos(p2);
+            let (ax, ay, az) = ndc_to_screen(c0.perspective_division());
+            let (bx, by, bz) = ndc_to_screen(c1.perspective_division());
+            let (cx, cy, cz) = ndc_to_screen(c2.perspective_division());
 
             for p in fill_triangle_iter(ax, ay, bx, by, cx, cy, 0, 0, width - 1, height - 1) {
                 let w = Vec3::new(p.b0, p.b1, p.b2);

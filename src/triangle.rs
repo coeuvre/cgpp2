@@ -42,8 +42,8 @@ impl FillTriangleIter {
 
         let minx = v0.x.min(v1.x).min(v2.x).floor().max(clip.min.x) as i32;
         let miny = v0.y.min(v1.y).min(v2.y).floor().max(clip.min.y) as i32;
-        let maxx = v0.x.max(v1.x).max(v2.x).ceil().min(clip.max.x) as i32;
-        let maxy = v0.y.max(v1.y).max(v2.y).ceil().min(clip.max.y) as i32;
+        let maxx = (v0.x.max(v1.x).max(v2.x).ceil().min(clip.max.x) as i32).max(minx);
+        let maxy = (v0.y.max(v1.y).max(v2.y).ceil().min(clip.max.y) as i32).max(miny);
 
         // Pixel center is at (0.5, 0.5)
         let ix = minx;
@@ -98,10 +98,10 @@ impl Iterator for FillTriangleIter {
                 self.w0 = self.w0_row;
                 self.w1 = self.w1_row;
                 self.w2 = self.w2_row;
+            }
 
-                if self.iy >= self.maxy {
-                    return None;
-                }
+            if self.ix >= self.maxx || self.iy >= self.maxy {
+                return None;
             }
 
             let ix = self.ix;

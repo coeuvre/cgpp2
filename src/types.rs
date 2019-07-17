@@ -138,6 +138,20 @@ impl Vec4 {
             e: [vec3.e[0], vec3.e[1], vec3.e[2], w],
         }
     }
+
+    pub fn xyz(&self) -> Vec3 {
+        Vec3::new(self.e[0], self.e[1], self.e[2])
+    }
+}
+
+impl Vec4 {
+    pub fn perspective_division(&self) -> Vec3 {
+        Vec3::new(
+            self.e[0] / self.e[3],
+            self.e[1] / self.e[3],
+            self.e[2] / self.e[3],
+        )
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -260,11 +274,18 @@ impl Mul<Vec4> for Mat4 {
 }
 
 impl Mat4 {
-    pub fn translate(v: Vec3) -> Mat4 {
+    pub fn translate(t: Vec3) -> Mat4 {
         let mut m = Mat4::identity();
-        m.e[3] = v.e[0];
-        m.e[7] = v.e[1];
-        m.e[11] = v.e[2];
+        m.e[3] = t.e[0];
+        m.e[7] = t.e[1];
+        m.e[11] = t.e[2];
+        m
+    }
+    pub fn scale(s: Vec3) -> Mat4 {
+        let mut m = Mat4::identity();
+        m.e[0] = s.e[0];
+        m.e[5] = s.e[1];
+        m.e[10] = s.e[2];
         m
     }
 
@@ -282,11 +303,11 @@ impl Mat4 {
         m
     }
 
-    pub fn look_at(eye: Vec3, center: Vec3, up: Vec3) -> Mat4 {
-        let z = (eye - center).normalized();
+    pub fn look_at(eye: Vec3, target: Vec3, up: Vec3) -> Mat4 {
+        let z = (eye - target).normalized();
         let x = up.cross(z).normalized();
         let y = z.cross(x).normalized();
-        Mat4::from_basis(x, y, z) * Mat4::translate(-center)
+        Mat4::from_basis(x, y, z) * Mat4::translate(-eye)
     }
 
     pub fn frustum(left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) -> Mat4 {
