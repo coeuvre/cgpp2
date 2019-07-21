@@ -205,80 +205,84 @@ impl Mat4 {
                 )
     }
 
+    pub fn adj(&self) -> Mat4 {
+        Mat4::with_elements([
+            det3x3(
+                self.e[5], self.e[6], self.e[7], self.e[9], self.e[10], self.e[11], self.e[13],
+                self.e[14], self.e[15],
+            ),
+            -det3x3(
+                self.e[4], self.e[6], self.e[7], self.e[8], self.e[10], self.e[11], self.e[12],
+                self.e[14], self.e[15],
+            ),
+            det3x3(
+                self.e[4], self.e[5], self.e[7], self.e[8], self.e[9], self.e[11], self.e[12],
+                self.e[13], self.e[15],
+            ),
+            -det3x3(
+                self.e[4], self.e[5], self.e[6], self.e[8], self.e[9], self.e[10], self.e[12],
+                self.e[13], self.e[14],
+            ),
+            -det3x3(
+                self.e[1], self.e[2], self.e[3], self.e[9], self.e[10], self.e[11], self.e[13],
+                self.e[14], self.e[15],
+            ),
+            det3x3(
+                self.e[0], self.e[2], self.e[3], self.e[8], self.e[10], self.e[11], self.e[12],
+                self.e[14], self.e[15],
+            ),
+            -det3x3(
+                self.e[0], self.e[1], self.e[3], self.e[8], self.e[9], self.e[11], self.e[12],
+                self.e[13], self.e[15],
+            ),
+            det3x3(
+                self.e[0], self.e[1], self.e[2], self.e[8], self.e[9], self.e[10], self.e[12],
+                self.e[13], self.e[14],
+            ),
+            det3x3(
+                self.e[1], self.e[2], self.e[3], self.e[5], self.e[6], self.e[7], self.e[13],
+                self.e[14], self.e[15],
+            ),
+            -det3x3(
+                self.e[0], self.e[2], self.e[3], self.e[4], self.e[6], self.e[7], self.e[12],
+                self.e[14], self.e[15],
+            ),
+            det3x3(
+                self.e[0], self.e[1], self.e[3], self.e[4], self.e[5], self.e[7], self.e[12],
+                self.e[13], self.e[15],
+            ),
+            -det3x3(
+                self.e[0], self.e[1], self.e[2], self.e[4], self.e[5], self.e[6], self.e[12],
+                self.e[13], self.e[14],
+            ),
+            -det3x3(
+                self.e[1], self.e[2], self.e[3], self.e[5], self.e[6], self.e[7], self.e[9],
+                self.e[10], self.e[11],
+            ),
+            det3x3(
+                self.e[0], self.e[2], self.e[3], self.e[4], self.e[6], self.e[7], self.e[8],
+                self.e[10], self.e[11],
+            ),
+            -det3x3(
+                self.e[0], self.e[1], self.e[3], self.e[4], self.e[5], self.e[7], self.e[8],
+                self.e[9], self.e[11],
+            ),
+            det3x3(
+                self.e[0], self.e[1], self.e[2], self.e[4], self.e[5], self.e[6], self.e[8],
+                self.e[9], self.e[10],
+            ),
+        ])
+        .transpose()
+    }
+
     pub fn inverse(&self) -> Option<Mat4> {
         let det = self.determinant();
         if det == 0.0 {
             return None;
         }
 
-        Some(
-            Mat4::with_elements([
-                det3x3(
-                    self.e[5], self.e[6], self.e[7], self.e[9], self.e[10], self.e[11], self.e[13],
-                    self.e[14], self.e[15],
-                ),
-                -det3x3(
-                    self.e[4], self.e[6], self.e[7], self.e[8], self.e[10], self.e[11], self.e[12],
-                    self.e[14], self.e[15],
-                ),
-                det3x3(
-                    self.e[4], self.e[5], self.e[7], self.e[8], self.e[9], self.e[11], self.e[12],
-                    self.e[13], self.e[15],
-                ),
-                -det3x3(
-                    self.e[4], self.e[5], self.e[6], self.e[8], self.e[9], self.e[10], self.e[12],
-                    self.e[13], self.e[14],
-                ),
-                det3x3(
-                    self.e[1], self.e[2], self.e[3], self.e[9], self.e[10], self.e[11], self.e[13],
-                    self.e[14], self.e[15],
-                ),
-                -det3x3(
-                    self.e[0], self.e[2], self.e[3], self.e[8], self.e[10], self.e[11], self.e[12],
-                    self.e[14], self.e[15],
-                ),
-                det3x3(
-                    self.e[0], self.e[1], self.e[3], self.e[8], self.e[9], self.e[11], self.e[12],
-                    self.e[13], self.e[15],
-                ),
-                -det3x3(
-                    self.e[0], self.e[1], self.e[2], self.e[8], self.e[9], self.e[10], self.e[12],
-                    self.e[13], self.e[14],
-                ),
-                det3x3(
-                    self.e[1], self.e[2], self.e[3], self.e[5], self.e[6], self.e[7], self.e[13],
-                    self.e[14], self.e[15],
-                ),
-                -det3x3(
-                    self.e[0], self.e[2], self.e[3], self.e[4], self.e[6], self.e[7], self.e[12],
-                    self.e[14], self.e[15],
-                ),
-                det3x3(
-                    self.e[0], self.e[1], self.e[3], self.e[4], self.e[5], self.e[7], self.e[12],
-                    self.e[13], self.e[15],
-                ),
-                -det3x3(
-                    self.e[0], self.e[1], self.e[2], self.e[4], self.e[5], self.e[6], self.e[12],
-                    self.e[13], self.e[14],
-                ),
-                det3x3(
-                    self.e[1], self.e[2], self.e[3], self.e[5], self.e[6], self.e[7], self.e[9],
-                    self.e[10], self.e[11],
-                ),
-                -det3x3(
-                    self.e[0], self.e[2], self.e[3], self.e[4], self.e[6], self.e[7], self.e[8],
-                    self.e[10], self.e[11],
-                ),
-                det3x3(
-                    self.e[0], self.e[1], self.e[3], self.e[4], self.e[5], self.e[7], self.e[8],
-                    self.e[9], self.e[11],
-                ),
-                -det3x3(
-                    self.e[0], self.e[1], self.e[2], self.e[4], self.e[5], self.e[6], self.e[8],
-                    self.e[9], self.e[10],
-                ),
-            ]) / det,
-        )
+        let adj = self.adj();
+        Some(adj / det)
     }
 }
 
@@ -479,5 +483,70 @@ impl Mat4 {
             -1.0,
             0.0,
         ])
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn assert_mat4_eq(m1: Mat4, m2: Mat4) {
+        for i in 0..16 {
+            assert!(m1.e[i] - m2.e[i] < 0.0001);
+        }
+    }
+
+    #[test]
+    fn test_mat4_transpose() {
+        assert_mat4_eq(
+            Mat4::with_elements([
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0,
+                16.0,
+            ])
+            .transpose(),
+            Mat4::with_elements([
+                1.0, 5.0, 9.0, 13.0, 2.0, 6.0, 10.0, 14.0, 3.0, 7.0, 11.0, 15.0, 4.0, 8.0, 12.0,
+                16.0,
+            ]),
+        );
+    }
+
+    #[test]
+    fn test_mat4_inverse() {
+        let m = Mat4::with_elements([
+            5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 1.0, 3.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+        ]);
+
+        assert_eq!(m.determinant(), -15.0);
+
+        assert_mat4_eq(
+            m.adj(),
+            Mat4::with_elements([
+                -3.0, 0.0, 0.0, 0.0, 0.0, 15.0, -15.0, 0.0, 0.0, -5.0, 0.0, 0.0, 3.0, 0.0, 0.0,
+                -15.0,
+            ]),
+        );
+
+        assert_mat4_eq(
+            m.inverse().unwrap(),
+            Mat4::with_elements([
+                3.0 / 15.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                -1.0,
+                1.0,
+                0.0,
+                0.0,
+                5.0 / 15.0,
+                0.0,
+                0.0,
+                -3.0 / 15.0,
+                0.0,
+                0.0,
+                1.0,
+            ]),
+        );
     }
 }

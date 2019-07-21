@@ -49,12 +49,18 @@ fn main() {
         let model_transform = Mat4::rorate_y(rotation);
         rotation += 0.01;
 
-        let mvp = projection * camera * model_transform;
-        //        let mvp_normal = mvp.transpose().inverse().unwrap();
+        let vp = projection * camera;
+        let vp_normal = vp.transpose().inverse().unwrap();
+
+        let mvp = vp * model_transform;
+        let mvp_normal = mvp.transpose().inverse().unwrap();
 
         let mut zbuffer = vec![std::f32::MIN; (width * height) as usize];
 
         let light_dir = Vec3::new(0.0, 0.0, -1.0).normalized();
+        let light_dir_transformed = (vp_normal * Vec4::from_vec3(light_dir, 0.0))
+            .xyz()
+            .normalized();
 
         for face in model.indices.chunks(3) {
             let v0 = model.vertices[face[0] as usize];
@@ -69,9 +75,27 @@ fn main() {
             let c1 = mvp * p1;
             let c2 = mvp * p2;
 
-            let i0 = calc_intensity(Vec3::with_elements(v0.normal), light_dir);
-            let i1 = calc_intensity(Vec3::with_elements(v1.normal), light_dir);
-            let i2 = calc_intensity(Vec3::with_elements(v2.normal), light_dir);
+            //            let i0 = calc_intensity(Vec3::with_elements(v0.normal), light_dir);
+            //            let i1 = calc_intensity(Vec3::with_elements(v1.normal), light_dir);
+            //            let i2 = calc_intensity(Vec3::with_elements(v2.normal), light_dir);
+            let i0 = calc_intensity(
+                (mvp_normal * Vec4::from_vec3(Vec3::with_elements(v0.normal), 0.0))
+                    .xyz()
+                    .normalized(),
+                light_dir_transformed,
+            );
+            let i1 = calc_intensity(
+                (mvp_normal * Vec4::from_vec3(Vec3::with_elements(v1.normal), 0.0))
+                    .xyz()
+                    .normalized(),
+                light_dir_transformed,
+            );
+            let i2 = calc_intensity(
+                (mvp_normal * Vec4::from_vec3(Vec3::with_elements(v2.normal), 0.0))
+                    .xyz()
+                    .normalized(),
+                light_dir_transformed,
+            );
 
             let (ax, ay, az) = ndc_to_screen(c0.perspective_division());
             let (bx, by, bz) = ndc_to_screen(c1.perspective_division());
