@@ -12,6 +12,94 @@ pub mod support;
 
 use support::canvas::*;
 
+pub trait Varying {
+    fn as_slice(&self) -> &[f32];
+    fn from_slice(slice: &[f32]) -> Self;
+}
+
+pub struct VertexShaderOutput<V: Varying> {
+    pub pos: Vec4,
+    pub varying: V,
+}
+
+pub struct FragmentShaderOutput {
+    pub color: Option<Vec4>,
+}
+
+trait FragmentShader<V: Varying> {}
+
+fn render<VS, FS, I, V, U>(
+    vertices: Vec<I>,
+    uniform: &U,
+    vs: &VS,
+    fs: &FS,
+    width: i32,
+    height: i32,
+    canvas: &mut Canvas,
+) where
+    V: Varying,
+    VS: Fn(&I, &U) -> VertexShaderOutput<V>,
+    FS: Fn(&V, &U) -> FragmentShaderOutput,
+{
+    let mut zbuffer = vec![std::f32::MIN; (width * height) as usize];
+    let ndc_to_screen = |p: Vec3| {
+        Vec3::new(
+            (p.e[0] + 1.0) * (width as f32) / 2.0,
+            (p.e[1] + 1.0) * (height as f32) / 2.0,
+            (-p.e[2] + 1.0) / 2.0,
+        )
+    };
+
+    for triangle in vertices
+        .iter()
+        .map(|vertex| vs(vertex, uniform))
+        .map(|vo| {
+            let ndc = vo.pos.perspective_division();
+            let screen_pos = ndc_to_screen(ndc);
+            (screen_pos, vo.varying)
+        })
+        .collect::<Vec<(Vec3, V)>>()
+        .chunks(3)
+    {
+        let (a, av) = &triangle[0];
+        let (b, bv) = &triangle[1];
+        let (c, cv) = &triangle[2];
+
+        for p in fill_triangle_iter(
+            a.e[0],
+            a.e[1],
+            b.e[0],
+            b.e[1],
+            c.e[0],
+            c.e[1],
+            0,
+            0,
+            width - 1,
+            height - 1,
+        ) {
+            let w = Vec3::new(p.b0, p.b1, p.b2);
+            let x = p.x;
+            let y = height - 1 - p.y;
+            let z = Vec3::new(a.e[2], b.e[2], c.e[2]) * w;
+            if z > zbuffer[(y * width + x) as usize] {
+                zbuffer[(y * width + x) as usize] = z;
+                let wv = av
+                    .as_slice()
+                    .iter()
+                    .zip(bv.as_slice().iter())
+                    .zip(cv.as_slice().iter())
+                    .map(|((a, b), c)| Vec3::new(*a, *b, *c) * w)
+                    .collect::<Vec<f32>>();
+                let v = V::from_slice(&wv);
+                let fo = fs(&v, uniform);
+                if let Some(color) = fo.color {
+                    canvas.set_pixel(x, y, color.e[0], color.e[1], color.e[2], color.e[3]);
+                }
+            }
+        }
+    }
+}
+
 fn main() {
     let width = 800;
     let height = 800;
