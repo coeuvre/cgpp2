@@ -147,8 +147,9 @@ where
     };
 
     'game: loop {
-        let mut event = std::mem::uninitialized::<SDL_Event>();
-        while SDL_PollEvent(&mut event) != 0 {
+        let mut event = std::mem::MaybeUninit::uninit();
+        while SDL_PollEvent(event.as_mut_ptr()) != 0 {
+            let event = event.assume_init();
             let event_type: SDL_EventType = std::mem::transmute(event.type_);
             match event_type {
                 SDL_EventType::SDL_QUIT => break 'game,

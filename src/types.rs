@@ -154,6 +154,19 @@ impl Vec4 {
     }
 }
 
+impl Mul<Vec4> for f32 {
+    type Output = Vec4;
+
+    fn mul(self, rhs: Vec4) -> Self::Output {
+        Vec4::new(
+            self * rhs.e[0],
+            self * rhs.e[1],
+            self * rhs.e[2],
+            self * rhs.e[3],
+        )
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct Mat4 {
     // Row-major order
